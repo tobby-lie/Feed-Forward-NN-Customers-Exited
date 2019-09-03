@@ -1,7 +1,7 @@
 # Tobby Lie
 # CSCI-5931 PA1
 # August 31, 2019
-# Last modified: 9/2/19 @ 12:31PM
+# Last modified: 9/3/19 @ 3:21PM
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
