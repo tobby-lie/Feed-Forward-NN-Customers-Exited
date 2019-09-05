@@ -1,7 +1,7 @@
 # Tobby Lie
 # CSCI-5931 PA1_Grad
 # August 31, 2019
-# Last modified: 9/4/19 @ 5:26PM
+# Last modified: 9/4/19 @ 8:18PM
 
 from sklearn import preprocessing
 import math
@@ -290,8 +290,26 @@ output_layer_perceptrons = np.array(output_layer_perceptrons)
 activation_input_out = np.dot(activation_outputs_2, output_layer_perceptrons)
 activation_output_out = sigmoid(activation_input_out)
 
-
 print(activation_output_out)
+print(labels[0][0])
+
+######################################################################################################################
+# Loss function - binary cross entropy loss function
+
+# If prediction is near correct for label then
+# the loss will be low
+# Otherwise if the prediction is far from correct 
+# based on the label, then loss will be high
+# Cost goes to infinity if label = 0 and prediction approaches 1
+# Cost goes to infinity if label = 1 and prediction approaches 0
+if labels[current_training_example][0] == 1:
+	loss = -(math.log(activation_output_out))
+elif labels[current_training_example][0] == 0:
+	loss = -(math.log(1-activation_output_out))
+
+print(loss)
+
+
 ######################################################################################################################
 '''
 print(hidden_layer1_perceptrons[1])
