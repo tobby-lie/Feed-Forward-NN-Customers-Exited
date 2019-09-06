@@ -1,77 +1,49 @@
 # Tobby Lie
 # CSCI-5931 PA1
 # August 31, 2019
-# Last modified: 9/3/19 @ 3:21PM
+# Last modified: 9/5/19 @ 11:53PM
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras import backend as K
 from keras import optimizers
 from sklearn import preprocessing
+from sklearn.metrics import f1_score
 import numpy as np
 import csv
 
-# to print entire list with out dots
-import sys
-np.set_printoptions(threshold=sys.maxsize)
-######################################################################################################################
 # Metric precision, recall, f1 have been removed from 
 # Keras 2.0 version so will need to create them for use
 # functions below used from: 
 # https://github.com/GeekLiB/keras/blob/master/keras/metrics.py
 def precision_m(y_true, y_pred):
-    '''Calculates the precision, a metric for multi-label classification of
-    how many selected items are relevant.
-    '''
+    # Calculates the precision
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
     precision = true_positives / (predicted_positives + K.epsilon())
     return precision
 
+
 def recall_m(y_true, y_pred):
-    '''Calculates the recall, a metric for multi-label classification of
-    how many relevant items are selected.
-    '''
+    # Calculates the recall
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
     recall = true_positives / (possible_positives + K.epsilon())
     return recall
 
-def fbeta_score(y_true, y_pred, beta=1):
-    '''Calculates the F score, the weighted harmonic mean of precision and recall.
-    This is useful for multi-label classification, where input samples can be
-    classified as sets of labels. By only using accuracy (precision) a model
-    would achieve a perfect score by simply assigning every class to every
-    input. In order to avoid this, a metric should penalize incorrect class
-    assignments as well (recall). The F-beta score (ranged from 0.0 to 1.0)
-    computes this, as a weighted mean of the proportion of correct class
-    assignments vs. the proportion of incorrect class assignments.
-    With beta = 1, this is equivalent to a F-measure. With beta < 1, assigning
-    correct classes becomes more important, and with beta > 1 the metric is
-    instead weighted towards penalizing incorrect class assignments.
-    '''
-    if beta < 0:
-        raise ValueError('The lowest choosable beta is zero (only precision).')
-        
-    # If there are no true positives, fix the F score at 0 like sklearn.
-    if K.sum(K.round(K.clip(y_true, 0, 1))) == 0:
-        return 0
-
-    p = precision_m(y_true, y_pred)
-    r = recall_m(y_true, y_pred)
-    bb = beta ** 2
-    fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
-    return fbeta_score
-
-
+# NOTE: WHEN USING THIS FMEASURE FUNCTION IT WILL BE A LITTLE OFF BECAUSE
+# K.EPSILON IS USED TO ENSURE NO DIVIDE BY ZERO ERROR OCCURS
 def fmeasure(y_true, y_pred):
-    '''Calculates the f-measure, the harmonic mean of precision and recall.
-    '''
-    return fbeta_score(y_true, y_pred, beta=1)
+    # Calculates the f-measure, the harmonic mean of precision and recall.
+	precision = precision_m(y_true, y_pred)
+	recall = recall_m(y_true, y_pred)
+	return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
 def listOfLists(lst):
+	''' Using a list comprehension create a list of lists based on lst input'''
 	return [[el] for el in lst]
 ######################################################################################################################
+# opens judge.csv and extracts features into lists which then get added to a list
 with open('judge.csv') as csvfile:
 	readCSV = csv.reader(csvfile, delimiter=',')
 
@@ -88,9 +60,9 @@ with open('judge.csv') as csvfile:
 
 	features = [] 
 	test_model_examples = []
-
+	# get all features and append to features list to create a vector
 	for row in readCSV:
-
+		# need to save cust_ID for later use when predicting
 		cust_ID.append(float(row[0]))
 
 		credit_score = row[1]
@@ -110,11 +82,15 @@ with open('judge.csv') as csvfile:
 		features.append(int(has_card))
 		features.append(int(active_member))
 		features.append(float(estimated_salary))
-
+		# add features vector to test_model_examples
+		# this is so it is a lists of lists to represent many examples
+		#  with its own set of features
 		test_model_examples.append(features[:])
-
+		# clear features list each time to be used again
 		features.clear()
 ######################################################################################################################
+# similar to above but used for dataset.csv
+
 with open('dataset.csv') as csvfile:
 	readCSV = csv.reader(csvfile, delimiter=',')
 
@@ -146,6 +122,9 @@ with open('dataset.csv') as csvfile:
 		active_member = row[6]
 		estimated_salary = row[7]
 
+		# Need to separate data 80/20 split so some 
+		# data is used to train and some to test 
+		# this is to verify the effectiveness of our model
 		if counter < 7200:
 
 			features.append(int(credit_score))
@@ -181,9 +160,11 @@ with open('dataset.csv') as csvfile:
 
 		counter += 1
 ######################################################################################################################
+# create list of lists from the labels
 labels = listOfLists(labels)
 test_labels = listOfLists(test_labels)
 ######################################################################################################################
+# make each list into an np.array for ease of use with keras
 training_examples = np.array(training_examples)
 test_examples = np.array(test_examples)
 labels = np.array(labels)
@@ -191,10 +172,12 @@ test_labels = np.array(test_labels)
 
 test_model_examples = np.array(test_model_examples)
 ######################################################################################################################
+# feature scale to prepare data for training and testing
 training_examples_scaled = preprocessing.scale(training_examples)
 test_examples_scaled = preprocessing.scale(test_examples)
 test_model_examples = preprocessing.scale(test_model_examples)
 ######################################################################################################################
+# these lists will hold the metrics for each test for each model
 accuracies = []
 precisions = []
 recalls = []
@@ -211,7 +194,7 @@ model_1.add(Dense(1, activation='sigmoid'))
 
 model_1.compile(optimizer='Adam',
 			loss='binary_crossentropy',
-			metrics=['accuracy', recall_m, precision_m, fmeasure])
+			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
 history_1 = model_1.fit(training_examples_scaled, labels, epochs=100, batch_size=32)
 loss, accuracy, f1_score, precision, recall = model_1.evaluate(test_examples_scaled, test_labels, batch_size=32)
@@ -232,7 +215,7 @@ model_2.add(Dense(1, activation='sigmoid'))
 
 model_2.compile(optimizer='Adam',
 			loss='binary_crossentropy',
-			metrics=['accuracy', recall_m, precision_m, fmeasure])
+			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
 history_2 = model_2.fit(training_examples_scaled, labels, epochs=100, batch_size=32)
 loss, accuracy, f1_score, precision, recall = model_2.evaluate(test_examples_scaled, test_labels, batch_size=32)
@@ -253,7 +236,7 @@ model_3.add(Dense(1, activation='sigmoid'))
 
 model_3.compile(optimizer='Adam',
 			loss='binary_crossentropy',
-			metrics=['accuracy', recall_m, precision_m, fmeasure])
+			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
 history_3 = model_3.fit(training_examples_scaled, labels, epochs=1000, batch_size=32)
 loss, accuracy, f1_score, precision, recall = model_3.evaluate(test_examples_scaled, test_labels, batch_size=32)
@@ -274,7 +257,7 @@ model_4.add(Dense(1, activation='sigmoid'))
 
 model_4.compile(optimizer='Adam',
 			loss='binary_crossentropy',
-			metrics=['accuracy', recall_m, precision_m, fmeasure])
+			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
 history_4 = model_4.fit(training_examples_scaled, labels, epochs=100, batch_size=32)
 loss, accuracy, f1_score, precision, recall = model_4.evaluate(test_examples_scaled, test_labels, batch_size=32)
@@ -284,25 +267,27 @@ precisions.append(str(precision))
 recalls.append(str(recall))
 f1_scores.append(str(f1_score))
 ######################################################################################################################
-
+# create list of predictions using .predict with keras
 predictions = model_4.predict(test_model_examples)
-
+# based on the probabilities of the predictions make decisions on whether
+# output is 0 or 1
 for index, prediction in enumerate(predictions):
 	if prediction[0] < 0.5:
 		prediction[0] = 0
 	elif prediction[0] > 0.5:
 		prediction[0] = 1
-
+# create list of lists to hold each prediction pair (customer ID, prediction)
 prediction_pairs = [[] for x in range(len(predictions))]
-
+# append customer ID and prediction for each prediction_pairs entry
 for index, prediction in enumerate(predictions):
 	prediction_pairs[index].append(cust_ID[index])
 	prediction_pairs[index].append(prediction[0])
-
+# make prediction_pairs an np.array in order to be written out to file
 prediction_pairs = np.array(prediction_pairs)
-
+# save results to file
 np.savetxt("judge-pred.csv", prediction_pairs, delimiter=",", fmt=("%i, %i"))
 ######################################################################################################################
+# display metrics for all of the tests
 for index, val in enumerate(accuracies):
 	print("------------------------------------------------------------------")
 	print("Accuracy for model " + str(index + 1) + " test: " + str(accuracies[index]))
@@ -311,10 +296,3 @@ for index, val in enumerate(accuracies):
 	print("F1 Score for model " + str(index + 1) + " test: " + str(f1_scores[index]))
 	print("------------------------------------------------------------------")
 ######################################################################################################################
-
-
-
-
-
-
-
