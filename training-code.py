@@ -1,7 +1,7 @@
 # Tobby Lie
 # CSCI-5931 PA1
 # August 31, 2019
-# Last modified: 9/6/19 @ 12:25AM
+# Last modified: 9/11/19 @ 5:26PM
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
@@ -9,6 +9,7 @@ from keras import backend as K
 from keras import optimizers
 from sklearn import preprocessing
 from sklearn.metrics import f1_score
+from sklearn.model_selection import train_test_split
 import numpy as np
 import csv
 
@@ -45,42 +46,37 @@ def listOfLists(lst):
 
 ######################################################################################################################
 # similar to above but used for dataset.csv
+def extract_data():
+	with open('dataset.csv') as csvfile:
+		readCSV = csv.reader(csvfile, delimiter=',')
 
-with open('dataset.csv') as csvfile:
-	readCSV = csv.reader(csvfile, delimiter=',')
+		credit_scores = []
+		ages = []
+		tenures = []
+		balances = []
+		num_products =[]
+		has_cards = []
+		active_members = []
+		estimated_salaies = []
 
-	credit_scores = []
-	ages = []
-	tenures = []
-	balances = []
-	num_products =[]
-	has_cards = []
-	active_members = []
-	estimated_salaies = []
+		labels = []
+		test_labels = []
 
-	labels = []
-	test_labels = []
+		features = []
+		training_examples = []
+		test_examples = []
+		counter = 0
+		for row in readCSV:
 
-	features = []
-	training_examples = []
-	test_examples = []
-	counter = 0
-	for row in readCSV:
-
-		label = row[8]
-		credit_score = row[0]
-		age = row[1]
-		tenure = row[2]
-		balance = row[3]
-		num_product = row[4]
-		has_card = row[5]
-		active_member = row[6]
-		estimated_salary = row[7]
-
-		# Need to separate data 80/20 split so some 
-		# data is used to train and some to test 
-		# this is to verify the effectiveness of our model
-		if counter < 7200:
+			label = row[8]
+			credit_score = row[0]
+			age = row[1]
+			tenure = row[2]
+			balance = row[3]
+			num_product = row[4]
+			has_card = row[5]
+			active_member = row[6]
+			estimated_salary = row[7]
 
 			features.append(int(credit_score))
 			features.append(int(age))
@@ -96,38 +92,23 @@ with open('dataset.csv') as csvfile:
 			features.clear()
 
 			labels.append(int(label))
-		else:
-
-			features.append(int(credit_score))
-			features.append(int(age))
-			features.append(int(tenure))
-			features.append(float(balance))
-			features.append(int(num_product))
-			features.append(int(has_card))
-			features.append(int(active_member))
-			features.append(float(estimated_salary))
-
-			test_examples.append(features[:])
-
-			features.clear()
-
-			test_labels.append(int(label))
-
-		counter += 1
+	return training_examples, labels
 ######################################################################################################################
-# create list of lists from the labels
-labels = listOfLists(labels)
-test_labels = listOfLists(test_labels)
-######################################################################################################################
-# make each list into an np.array for ease of use with keras
-training_examples = np.array(training_examples)
-test_examples = np.array(test_examples)
-labels = np.array(labels)
-test_labels = np.array(test_labels)
+training_examples, labels = extract_data()
+# split training and test data 80/20
+x_train, x_test, y_train, y_test = train_test_split(training_examples, labels, test_size=0.2)
+x_train = np.array(x_train)
+x_test = np.array(x_test)
+y_train = np.array(y_train)
+# add dimension to shape
+y_train.shape += (1,)
+y_test = np.array(y_test)
+# add dimension to shape
+y_test.shape += (1,)
 ######################################################################################################################
 # feature scale to prepare data for training and testing
-training_examples_scaled = preprocessing.scale(training_examples)
-test_examples_scaled = preprocessing.scale(test_examples)
+x_train = preprocessing.scale(x_train)
+x_test = preprocessing.scale(x_test)
 ######################################################################################################################
 # these lists will hold the metrics for each test for each model
 accuracies = []
@@ -135,7 +116,6 @@ precisions = []
 recalls = []
 f1_scores = []
 ######################################################################################################################
-
 # model 1
 model_1 = Sequential()
 model_1.add(Dense(4, activation='sigmoid', input_dim=8))
@@ -149,8 +129,8 @@ model_1.compile(optimizer='Adam',
 			loss='binary_crossentropy',
 			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
-history_1 = model_1.fit(training_examples_scaled, labels, epochs=100, batch_size=32)
-loss, accuracy, f1_score, precision, recall = model_1.evaluate(test_examples_scaled, test_labels, batch_size=32)
+history_1 = model_1.fit(x_train, y_train, epochs=100, batch_size=32)
+loss, accuracy, f1_score, precision, recall = model_1.evaluate(x_test, y_test, batch_size=32)
 
 accuracies.append(str(accuracy))
 precisions.append(str(precision))
@@ -170,8 +150,8 @@ model_2.compile(optimizer='Adam',
 			loss='binary_crossentropy',
 			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
-history_2 = model_2.fit(training_examples_scaled, labels, epochs=100, batch_size=32)
-loss, accuracy, f1_score, precision, recall = model_2.evaluate(test_examples_scaled, test_labels, batch_size=32)
+history_2 = model_2.fit(x_train, y_train, epochs=100, batch_size=32)
+loss, accuracy, f1_score, precision, recall = model_2.evaluate(x_test, y_test, batch_size=32)
 
 accuracies.append(str(accuracy))
 precisions.append(str(precision))
@@ -191,8 +171,8 @@ model_3.compile(optimizer='Adam',
 			loss='binary_crossentropy',
 			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
-history_3 = model_3.fit(training_examples_scaled, labels, epochs=1000, batch_size=32)
-loss, accuracy, f1_score, precision, recall = model_3.evaluate(test_examples_scaled, test_labels, batch_size=32)
+history_3 = model_3.fit(x_train, y_train, epochs=1000, batch_size=32)
+loss, accuracy, f1_score, precision, recall = model_3.evaluate(x_test, y_test, batch_size=32)
 
 accuracies.append(str(accuracy))
 precisions.append(str(precision))
@@ -213,8 +193,8 @@ model_4.compile(optimizer='Adam',
 			loss='binary_crossentropy',
 			metrics=['accuracy', fmeasure, precision_m, recall_m])
 
-history_4 = model_4.fit(training_examples_scaled, labels, epochs=100, batch_size=32)
-loss, accuracy, f1_score, precision, recall = model_4.evaluate(test_examples_scaled, test_labels, batch_size=32)
+history_4 = model_4.fit(x_train, y_train, epochs=100, batch_size=32)
+loss, accuracy, f1_score, precision, recall = model_4.evaluate(x_test, y_test, batch_size=32)
 
 accuracies.append(str(accuracy))
 precisions.append(str(precision))

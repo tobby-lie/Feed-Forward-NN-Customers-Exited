@@ -1,7 +1,7 @@
 # Tobby Lie
 # CSCI-5931 PA1
 # August 31, 2019
-# Last modified: 9/6/19 @ 12:25AM
+# Last modified: 9/11/19 @ 5:26PM
 
 import csv
 import numpy as np
