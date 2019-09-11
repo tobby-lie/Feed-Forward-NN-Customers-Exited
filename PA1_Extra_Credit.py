@@ -146,6 +146,7 @@ test_model_examples = np.array(test_model_examples)
 training_examples_scaled = preprocessing.scale(training_examples)
 test_examples_scaled = preprocessing.scale(test_examples)
 test_model_examples = preprocessing.scale(test_model_examples)
+labels_scaled = preprocessing.scale(labels)
 ######################################################################################################################
 accuracies = []
 precisions = []
@@ -179,7 +180,7 @@ output_layer = np.random.rand(1, 1)
 # this is to test convergence with continuous values
 labels = np.random.rand(7200, 1)
 
-for index, label in enumerate(labels):
+for index, label in enumerate(labels_scaled):
 	# need to re-initialize input_layer so it maintains shape
 	input_layer = np.random.rand(8, 1)
 	# set input_layer equal to training_example set
@@ -290,6 +291,7 @@ for index, label in enumerate(labels):
 	print("-------------------------------------")
 	print("Accuracy: " + str(accuracy))
 	print("Loss: " + str(error_out))
+	print(label)
 	print("-------------------------------------")
 
 	if index == 0 or index == len(labels)-1:
@@ -304,10 +306,3 @@ for indx, acc in enumerate(compare_accuracy):
 	print("Accuracy: " + str(acc))
 	print("Loss: " + str(comapre_loss[indx]))
 	print("-------------------------------------")
-
-
-
-
-
-
-
