@@ -1,6 +1,6 @@
 # CUSTOMERS EXITED
 
-This program is a program that utilizes various feed-
+This program utilizes various feed-
 forward neural networks in order to predict which 
 customers from a European Bank will exit or stay 
 (1 or 0).
